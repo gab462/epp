@@ -214,5 +214,7 @@ auto main() -> int {
         tui.move_cursor(visual_column, visual_line);
     }
 
+    tui.clear();
+
     return 0;
 }
