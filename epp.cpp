@@ -16,9 +16,7 @@ struct Editor {
     bool running = true;
 
     auto new_line() -> void {
-        ++line;
         column = 0;
-
         lines.insert(lines.begin() + line, "");
     }
 
@@ -84,6 +82,10 @@ struct Editor {
     auto input(char c) -> void {
         switch (c) {
         case '\n':
+            ++line;
+            new_line();
+            break;
+        case 'O':
             new_line();
             break;
         case '\b':
@@ -194,8 +196,9 @@ auto main() -> int {
         int visual_column = editor.column + 1;
 
         // Clear screen in case of large movement
-        if (std::string{"NPCVK\n"}.contains(input)) {
-            if (editor.adjust_offset(tui.height()) || input == 'K' || input == '\n') {
+        if (std::string{"NPCVKO\n"}.contains(input)) {
+            if (editor.adjust_offset(tui.height())
+                    || input == 'K' || input == '\n' || input == 'O') {
                 tui.clear();
 
                 // Recalculate visual cursor position
