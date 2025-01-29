@@ -200,7 +200,6 @@ auto main() -> int {
 
                 // Recalculate visual cursor position
                 visual_line = editor.line - editor.line_offset + 1;
-                visual_column = editor.column + 1;
             }
         } else if (input == '\b' || input == 127) { // Clear last character in case of backspace
             tui.move_cursor(editor.lines[editor.line].size() + 1, visual_line);
