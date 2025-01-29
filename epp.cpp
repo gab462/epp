@@ -24,13 +24,14 @@ struct Editor {
     }
 
     auto delete_line() -> void {
-        if (lines.size() > 0) {
-            lines.erase(lines.begin() + line);
-            column = 0;
+        if (lines.size() == 1)
+            return;
 
-            if (line >= static_cast<int>(lines.size()))
-                --line;
-        }
+        lines.erase(lines.begin() + line);
+        column = 0;
+
+        if (line >= static_cast<int>(lines.size()))
+            --line;
     }
 
     auto backspace() -> void {
@@ -225,7 +226,7 @@ auto main(int argc, char *argv[]) -> int {
         // Clear screen in case of large movement
         if (std::string{"NPCVKO\n"}.contains(input)) {
             if (editor.adjust_offset(tui.height())
-                    || input == 'K' || input == '\n' || input == 'O') {
+                || input == 'K' || input == '\n' || input == 'O') {
                 tui.clear();
 
                 // Recalculate visual cursor position
