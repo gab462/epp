@@ -4,11 +4,14 @@
 #include <print>
 #include <iostream>
 #include <algorithm>
+#include <fstream>
+#include <iterator>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 
 struct Editor {
+    const char *output = "out";
     std::vector<std::string> lines = {""};
     int line = 0;
     int column = 0;
@@ -41,6 +44,22 @@ struct Editor {
     auto insert(char c, int count = 1) -> void {
         lines[line].insert(column, count, c);
         column += count;
+    }
+
+    auto load() -> void {
+        lines.clear();
+
+        std::ifstream f{output};
+
+        std::string file_line;
+
+        while (std::getline(f, file_line))
+            lines.push_back(file_line);
+    }
+
+    auto save() -> void {
+        std::ofstream f{output};
+        std::ranges::copy(lines, std::ostream_iterator<std::string>(f, "\n"));
     }
 
     auto move(char c) -> void {
@@ -97,6 +116,9 @@ struct Editor {
             break;
         case 'K':
             delete_line();
+            break;
+        case 'S':
+            save();
             break;
         default:
             if (std::string{"BFNPAECVQ"}.contains(c))
@@ -177,9 +199,14 @@ struct Tui {
     }
 };
 
-auto main() -> int {
+auto main(int argc, char *argv[]) -> int {
     Editor editor;
     Tui tui;
+
+    if (argc > 1) {
+        editor.output = argv[1];
+        editor.load();
+    }
 
     std::streambuf *buf = std::cin.rdbuf();
     tui.clear();
