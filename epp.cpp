@@ -130,23 +130,19 @@ struct Editor {
         }
     }
 
-    auto adjust_offset(int height) -> bool {
+    auto adjust_offset(int height) -> void {
         int line_count = line + 1;
 
-        if (line_count - line_offset > height) {
+        if (line_count - line_offset > height)
             line_offset = line_count - height;
-            return true;
-        } else if (line - line_offset < 0) {
+        else if (line - line_offset < 0)
             line_offset = line;
-            return true;
-        }
-
-        return false;
     }
 };
 
 struct Tui {
     struct termios term;
+    std::vector<std::string> back_buffer;
 
     Tui() {
         tcgetattr(STDIN_FILENO, &term);
@@ -183,19 +179,34 @@ struct Tui {
 
         int count = std::min(height(), static_cast<int>(lines.size() - offset));
 
-        for (auto& line: std::span(lines).subspan(offset, count)) {
-            std::println("{}", line);
+        for (int i = 0; i < count; ++i) {
+            auto& line = lines[offset + i];
+
+            std::print("{}", line);
+
+            if (i < static_cast<int>(back_buffer.size())) {
+                auto& back_buffer_line = back_buffer[i];
+
+                if (line.size() < back_buffer_line.size()) {
+                    std::string blank;
+
+                    blank.insert(0, back_buffer_line.size() - line.size(), ' ');
+
+                    std::print("{}", blank);
+                }
+            }
+
+            std::println("");
         }
     }
 
-    auto clear() -> void {
-        std::string blank{};
-        blank.insert(0, width(), ' ');
+    auto setup_back_buffer(std::vector<std::string> const& lines, int offset = 0) -> void {
+        back_buffer.clear();
 
-        move_cursor(1, 1);
+        int count = std::min(height(), static_cast<int>(lines.size() - offset));
 
-        for (int i = 0; i < height(); ++i) {
-            std::println("{}", blank);
+        for (auto& line: std::span(lines).subspan(offset, count)) {
+            back_buffer.push_back(line);
         }
     }
 };
@@ -210,8 +221,9 @@ auto main(int argc, char *argv[]) -> int {
     }
 
     std::streambuf *buf = std::cin.rdbuf();
-    tui.clear();
+
     tui.display(editor.lines, editor.line_offset);
+    tui.setup_back_buffer(editor.lines);
     tui.move_cursor(editor.column + 1, editor.line - editor.line_offset + 1);
 
     while (editor.running) {
@@ -219,30 +231,18 @@ auto main(int argc, char *argv[]) -> int {
 
         editor.input(input);
 
+        editor.adjust_offset(tui.height());
+
         // 1-index based
         int visual_line = editor.line - editor.line_offset + 1;
         int visual_column = editor.column + 1;
 
-        // Clear screen in case of large movement
-        if (std::string{"NPCVKO\n"}.contains(input)) {
-            if (editor.adjust_offset(tui.height())
-                || input == 'K' || input == '\n' || input == 'O') {
-                tui.clear();
-
-                // Recalculate visual cursor position
-                visual_line = editor.line - editor.line_offset + 1;
-            }
-        } else if (input == '\b' || input == 127) { // Clear last character in case of backspace
-            tui.move_cursor(editor.lines[editor.line].size() + 1, visual_line);
-            std::print(" ");
-        }
-
         tui.display(editor.lines, editor.line_offset);
 
         tui.move_cursor(visual_column, visual_line);
-    }
 
-    tui.clear();
+        tui.setup_back_buffer(editor.lines, editor.line_offset);
+    }
 
     return 0;
 }
