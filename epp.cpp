@@ -241,6 +241,8 @@ auto main(int argc, char *argv[]) -> int {
 
         tui.move_cursor(visual_column, visual_line);
 
+        std::cout.flush();
+
         tui.setup_back_buffer(editor.lines, editor.line_offset);
     }
 
